@@ -7,11 +7,19 @@ env:
 on:
   push:
     branches:
-      master
+      main
 
 jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        uses: altavec/update-existing-release@v1
   ci:
     name: Continuous integration
+    needs: create
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,23 +28,24 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macOS-latest
-    steps:
-    - name: Install gnuwin32 and zip on Windows
-      if: startsWith(matrix.os, 'windows')
-      run: choco install gnuwin32-coreutils.install zip
-    - name: Check out sources
-      uses: actions/checkout@v2
-    - name: Build bundle with npm
-      run: |
-        npm install
-        npm run bundle
-    - name: Zip distribution
-      run: |
-        zip -9 update-existing-release-${{ matrix.os }}.zip *
-        zip -9 -r update-existing-release-${{ matrix.os }}.zip src dist img .github
-    - name: Update release
-      uses: ColinPitrat/update-existing-release@master
-      id: update-existing-release
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: update-existing-release-${{ matrix.os }}.zip
+    steps:   
+      - name: Install gnuwin32 and zip on Windows
+        if: startsWith(matrix.os, 'windows')
+        run: choco install gnuwin32-coreutils.install zip
+
+      - uses: actions/checkout@v4
+
+      - name: Build bundle with npm
+        run: |
+          npm install
+          npm run bundle
+
+      - name: Zip distribution
+        run: |
+          zip -9 update-existing-release-${{ matrix.os }}.zip *
+          zip -9 -r update-existing-release-${{ matrix.os }}.zip src dist img .github
+
+      - name: Update release
+        uses: altavec/update-existing-release@v1
+        with:
+          files: update-existing-release-${{ matrix.os }}.zip
